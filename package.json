@@ -1,0 +1,16 @@
+{
+  "name": "bitalgo",
+  "version": "1.0.0",
+  "description": "Algorithmic trading with bitcoin",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bitfinex-api-node": "^0.1.18",
+    "express": "^4.13.3",
+    "request": "^2.67.0"
+  }
+}

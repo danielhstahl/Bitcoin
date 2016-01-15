@@ -1,0 +1,228 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+        <link href="assets/css/jasny-bootstrap.min.css" rel="stylesheet" media="screen">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+        <script src="assets/js/jasny-bootstrap.min.js"></script>
+        <script src="https://code.highcharts.com/highcharts.js"></script>
+        <script src='assets/ajax.js'></script>
+        <script src='assets/path.js'></script>
+        <script src='/socket.io/socket.io.js'></script>
+        <script src='assets/js/handlebars.runtime-v4.0.5.js'></script>
+        <script src='assets/templates/templates.js'></script>
+        <style>
+            .navmenu-fixed-left{
+                width:200px;
+            }
+            @media (min-width: 768px) {
+                body {
+                    padding-left: 200px;
+                  
+                }
+                .container{
+                    padding-right:200px;
+                }
+            }
+            .navbar-default{
+                background-color:white;
+                border:0px;
+            }
+            /*.nav-pills{
+                padding-top:40px
+            }*/
+        </style>
+    </head>
+    <body>
+        <div id='main'></div>
+        <!--<div class="navmenu navmenu-default navmenu-fixed-left offcanvas-xs">
+
+            
+            <ul class="nav nav-pills nav-stacked">
+                <li role="presentation" class="active"><a href="#/portfolio" >Portfolio</a></li>
+                <li role="presentation"><a href="#/market">Market</a></li>
+                <li role="presentation"><a href="#/settings">Settings</a></li>
+            </ul>
+              
+        </div>-->
+
+        
+
+        
+        
+    
+    
+    </body>
+    <script>
+        var ts="";
+        var links={
+            portfolio:{
+                //url:"portfolio", 
+                name:"Portfolio",
+                charts:[
+                    "tsPortfolio"
+                ]//,
+                //chartDiv:""
+            },
+            market:{
+                //url:"market",
+                name:"Market",
+                charts:[
+                    "tsMarket"
+                ]
+            },
+            settings:{
+                //url:"settings",
+                name:"Settings"
+            }
+        };
+        var charts={
+            tsMarket:{
+                chart:""//,
+                //renderFunction:tsChart;
+            },
+            tsPortfolio:{
+                chart:"",
+            },
+            yieldCurve:{
+                chart:"",
+            }
+        };
+        Handlebars.partials = Handlebars.templates;
+        var template = Handlebars.templates['links'];
+        var prgBar=Handlebars.templates['progressbar'];
+        $('#main').html(template({link:links}));
+        Highcharts.setOptions({
+            global: {
+                useUTC: false
+            }
+        });
+        
+        for(key in links){
+            var chartLinks=links[key].charts;
+            
+            
+            if(chartLinks){
+                var n=chartLinks.length;
+                
+                for(var i=0; i<n; i++){
+                    charts[chartLinks[i]].container=$(document.createElement('div')).html(prgBar({percent:100}));//prgBar({percent:100});//
+                    //console.log(charts[chartLinks[i]].container);
+                }
+            }
+            Path.map('#/'+key).to(function() {
+                var id=this.path.replace("#/", "");
+                $('li').removeClass('active');
+                $('#'+id).addClass('active');
+                $('#landscape').html("");
+                var chartLinks=links[id].charts;
+                if(chartLinks){
+                    var n=chartLinks.length;
+                    for(var i=0; i<n; i++){
+                        $('#landscape').append(charts[chartLinks[i]].container);
+                    }
+                }
+                
+                
+            });
+        }
+        Path.root('#/portfolio');
+        Path.listen();
+            
+        ajax('/trade_history', {type:"post"}, function(data){
+            data=JSON.parse(data);
+            var n=data.length;
+            var chartData=[];
+            var offset=new Date().getTimezoneOffset()*60*1000;//minutes to seconds to ms
+            data.sort(function(a, b){
+                return a.timestamp-b.timestamp;
+            });
+            for(var i=0;i<n;i++){
+                chartData.push([data[i].timestamp*1000, parseFloat(data[i].price)]);
+            }
+            tsChart(chartData);
+            var socket = io();
+            socket.on('indexVal', function(data){
+                //console.log(data);
+                //tsChart({x:new Date().getTime(), y:data.totalValue});
+                //console.log(data);
+                //tsChart([data['BTCUSD'].timestamp*1000, data['BTCUSD'].value]);
+                tsChart([new Date().getTime(), data['BTCUSD'].value]);
+            });
+        });
+        
+        var tsChart=function(data){
+            //console.log(chrt);
+            if(!charts.tsMarket.chart){
+                var container=charts.tsMarket.container;
+                charts.tsMarket.chart=new Highcharts.Chart({
+                    chart: {
+                        zoomType: 'x',
+                        renderTo:container[0]//'marketTSChart'
+                    },
+                    title: {
+                        text: 'USD to Bitcoin exchange rate over time'
+                    },
+                    subtitle: {
+                        text: document.ontouchstart === undefined ?
+                                'Click and drag in the plot area to zoom in' : 'Pinch the chart to zoom in'
+                    },
+                    xAxis: {
+                        type: 'datetime'
+                    },
+                    yAxis: {
+                        title: {
+                            text: 'Exchange rate'
+                        }
+                    },
+                    legend: {
+                        enabled: false
+                    },
+                    plotOptions: {
+                        area: {
+                            fillColor: {
+                                linearGradient: {
+                                    x1: 0,
+                                    y1: 0,
+                                    x2: 0,
+                                    y2: 1
+                                },
+                                stops: [
+                                    [0, Highcharts.getOptions().colors[0]],
+                                    [1, Highcharts.Color(Highcharts.getOptions().colors[0]).setOpacity(0).get('rgba')]
+                                ]
+                            },
+                            marker: {
+                                radius: 2
+                            },
+                            lineWidth: 1,
+                            states: {
+                                hover: {
+                                    lineWidth: 1
+                                }
+                            },
+                            threshold: null
+                        }
+                    },
+                    series: [{
+                        type: 'area',
+                        name: 'USD to BTC',
+                        data: data
+                    }]
+                });
+            }
+            else{
+                //console.log(data);
+                var drop=false;
+                //console.log(ts.series[0].data[0].x);
+                if(data[0]-charts.tsMarket.chart.series[0].data[0].x>3600000){
+                    drop=true;
+                }
+            //console.log(data);
+                charts.tsMarket.chart.series[0].addPoint(data, true, drop);
+            }
+        }
+            
+         
+    </script>
+</html>

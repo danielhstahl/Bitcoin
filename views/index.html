@@ -1,0 +1,190 @@
+<html>
+    <head>
+        
+    </head>
+    <body>
+        <div id='main'>
+        
+        
+        </div>
+    </body>
+    
+    <!---->
+    
+    <!--<script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/exporting.js"></script>-->
+    <script src='/assets/jquery-2.1.4.min.js' type="text/javascript"></script>  
+    <!--<script src='/assets/highcharts-custom.js' type="text/javascript"></script> -->
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/exporting.js"></script>
+    <script src='/socket.io/socket.io.js'></script>
+    <script>
+    var ajax=function(url, options, callback){
+        var xhr = new XMLHttpRequest();
+        xhr.open(options.type, encodeURI(url));
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                if(callback){
+                    callback(xhr.responseText);
+                }
+                //alert('User\'s name is ' + xhr.responseText);
+            }
+            else {
+                //alert('Request failed.  Returned status of ' + xhr.status);
+            }
+        };
+        xhr.send();
+    }
+        
+        
+    //var socket = io();
+    
+    
+    function callWebSocket(series) {
+            var socket = new WebSocket('wss://api2.bitfinex.com:3000/ws');
+            var chanelId=0;
+            socket.onopen = function () {
+                socket.send(JSON.stringify({
+                    "event": "subscribe",
+                    "channel": "trades",
+                    "pair": "BTCUSD"
+                }));
+            };
+
+            socket.onmessage = function (e) {
+                var data=JSON.parse(e.data);
+                var offset=new Date().getTimezoneOffset()*60*1000;//minutes to seconds to ms
+                if(data.event){
+                    if(data.event==='subscribed'){
+                        chanelId=data.chanId;
+                    }
+                }
+                else {
+                    var isArray=(Array===data[1].constructor);
+                    if(data[0]===chanelId&&(isArray||data.length>2)){
+                        if(isArray){//two dimensinoal array
+                            var n=data[1].length;
+                            var dta=data[1];
+                            for(var i=0; i<(n-1); i++){
+                                //var d = new Date(0);
+                                //d.setUTCSeconds(dta[i][1]);
+                                series.addPoint([dta[i][1]*1000-offset, dta[i][2]], false, false);
+                            }
+                            //var d = new Date(0);
+                            //d.setUTCSeconds(dta[n-1][1]);
+                            
+                            series.addPoint([dta[n-1][1]*1000-offset, dta[n-1][2]], true, false);
+                        }
+                        else{
+                            console.log(data);
+                            var goOffScreen=false;
+                            if(series.data.length>500){
+                                goOffScreen=true;
+                            }
+                            //var d = new Date(0);
+                            //d.setUTCSeconds(data[2]);
+                            //console.log(d);
+                            series.addPoint([data[2]*1000-offset, data[3]], true, goOffScreen);
+                        }
+                    }
+                } 
+            };
+            socket.onerror = function (e) {
+                console.log("An error occured while connecting... " + e.data);
+            };
+            socket.onclose = function () {
+                console.log("hello.. The coonection has been clsoed");
+            };
+
+       }
+    
+    
+        
+   /* ajax('/trades', {type:"POST"}, function(data){
+        data=JSON.parse(data, function(k, v){
+            if(k === 'timestamp'){
+                this.x=v;
+            }
+            else if(k==='price'){
+                this.y=parseFloat(v);
+            }
+            else{
+                return v;
+            } 
+        });
+        var n=data.length;
+        var axis=[];
+        for(var i=0; i<n; i++){
+            axis.push([data[i].x, data[i].y]);
+        }
+        axis.sort(function(a, b){
+           return a[0]-b[0]; 
+        });
+        createChart(axis);
+    });*/
+    createChart();
+    function createChart(){
+        $('#main').highcharts('StockChart', {
+            chart : {
+                events : {
+                    load : function () {
+                        callWebSocket(this.series[0]);
+                        // set up the updating of the chart each second
+                        //var series = this.series[0];
+                        //setInterval(function () {
+                           // var x = (new Date()).getTime(), // current time
+                          //      y = Math.round(Math.random() * 100);
+                           // series.addPoint([x, y], true, true);
+                        //}, 1000);
+                    }
+                }
+            },
+
+            /*rangeSelector: {
+                buttons: [{
+                    count: 1,
+                    type: 'minute',
+                    text: '1M'
+                }, {
+                    count: 5,
+                    type: 'minute',
+                    text: '5M'
+                }, {
+                    type: 'all',
+                    text: 'All'
+                }],
+                inputEnabled: false,
+                selected: 0
+            },*/
+            xAxis: {
+                type: 'datetime'
+            },
+            title : {
+                text : 'Live random data'
+            },
+
+            exporting: {
+                enabled: false
+            },
+            plotOptions: {
+                series: {
+                    marker: {
+                        enabled: false
+                    }
+                }
+            },
+            series : [{
+                name : 'Bitcoin Data',
+                data : []
+            }]
+        });
+    }
+    
+
+        
+        
+        
+    
+    
+    </script>
+</html> 

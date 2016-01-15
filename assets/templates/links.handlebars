@@ -1,0 +1,25 @@
+<div class="navmenu navmenu-default navmenu-fixed-left offcanvas-xs">
+    <!--<a class="navmenu-brand visible-md visible-lg" href="#">Project name</a>-->
+
+    <ul class="nav nav-pills nav-stacked">
+        {{#each link}}
+            <li id='{{@key}}' role="presentation" class=""><a  href="#/{{@key}}" >{{name}}</a></li>
+        {{/each}}
+    </ul>
+</div>
+
+<div class="container">
+    <div class="navbar navbar-default visible-xs">
+        <div class="navbar-toggle pull-left" data-toggle="offcanvas" data-target=".navmenu">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </div>
+    </div> 
+    <div id='landscape' class='col-xs-12'>
+
+    </div>
+
+
+
+</div>
